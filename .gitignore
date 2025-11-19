@@ -50,3 +50,4 @@ htmlcov/
 
 # pip cache (optional, if you want to ignore local caches)
 pip-log.txt
+data/
