@@ -1,47 +1,54 @@
+# correlation.py
 import pandas as pd
+from scipy.stats import pearsonr
 
-def merge_news_stock(news_df, stock_df):
+# -----------------------------
+# Merge News & Stock Data
+# -----------------------------
+def merge_news_stock(news_df: pd.DataFrame, stock_df: pd.DataFrame) -> pd.DataFrame:
     """
-    Merge preprocessed news data and stock data based on date and stock symbol.
-    Aggregates sentiment per day per stock (mean).
+    Merge daily aggregated news sentiment with stock daily returns by date and stock symbol.
+    Args:
+        news_df (pd.DataFrame): Aggregated daily sentiment ('date', 'stock', 'avg_daily_sentiment')
+        stock_df (pd.DataFrame): Stock DataFrame with 'Date', 'Close', 'Daily_Return'
+    Returns:
+        pd.DataFrame: merged DataFrame
     """
-    # 1️⃣ Aggregate daily sentiment per stock
-    daily_sentiment = (
-        news_df.groupby(['date', 'stock'])['polarity']
-        .mean()
-        .reset_index()
-        .rename(columns={'polarity': 'Daily_Sentiment'})
-    )
-
-    # 2️⃣ Ensure stock_df date format matches
-    stock_df['Date'] = pd.to_datetime(stock_df['Date'], utc=True)
+    # Ensure consistent column names
+    stock_df = stock_df.rename(columns={'Date': 'date'})
     
-    # 3️⃣ Merge datasets
-    merged_df = pd.merge(
-        daily_sentiment,
-        stock_df[['Date', 'Close', 'Daily_Return']],
-        left_on='date',
-        right_on='Date',
-        how='inner'
-    )
-
-    # Drop duplicate column
-    merged_df = merged_df.drop(columns=['Date'])
-    
+    merged_df = pd.merge(news_df, stock_df, on='date', how='inner')
     return merged_df
 
+# -----------------------------
+# Compute Pearson Correlation
+# -----------------------------
+def compute_correlation(merged_df: pd.DataFrame) -> float:
+    """
+    Compute Pearson correlation between daily sentiment and stock daily returns.
+    Args:
+        merged_df (pd.DataFrame): DataFrame with 'avg_daily_sentiment' and 'Daily_Return'
+    Returns:
+        float: correlation coefficient
+    """
+    corr, _ = pearsonr(merged_df['avg_daily_sentiment'], merged_df['Daily_Return'])
+    return corr
 
-def compute_correlation(merged_df):
+# -----------------------------
+# Compute Lagged Correlation
+# -----------------------------
+def compute_lag_correlation(merged_df: pd.DataFrame, lag_days: int = 1) -> float:
     """
-    Compute Pearson correlation between sentiment and stock return.
+    Compute correlation between sentiment and stock returns with a lag.
+    Args:
+        merged_df (pd.DataFrame): merged DataFrame
+        lag_days (int): number of days to shift sentiment
+    Returns:
+        float: lagged correlation coefficient
     """
-    return merged_df['Daily_Sentiment'].corr(merged_df['Daily_Return'])
-
-
-def compute_lag_correlation(merged_df, lag_days=1):
-    """
-    Shift sentiment scores to previous day(s).
-    Useful if market reacts next day.
-    """
-    merged_df['Lagged_Sentiment'] = merged_df['Daily_Sentiment'].shift(lag_days)
-    return merged_df['Lagged_Sentiment'].corr(merged_df['Daily_Return'])
+    merged_df = merged_df.copy()
+    merged_df['lagged_sentiment'] = merged_df['avg_daily_sentiment'].shift(lag_days)
+    merged_df = merged_df.dropna(subset=['lagged_sentiment', 'Daily_Return'])
+    
+    corr, _ = pearsonr(merged_df['lagged_sentiment'], merged_df['Daily_Return'])
+    return corr

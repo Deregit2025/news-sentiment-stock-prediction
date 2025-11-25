@@ -1,42 +1,61 @@
+# data_loader.py
 import pandas as pd
 import os
 
-# Path configurations
-NEWS_DATA_PATH = os.path.join("data", "news_data", "news.csv")
-STOCK_DATA_FOLDER = os.path.join("data", "stock_data")
+# Base paths
+NEWS_PATH = os.path.join("data", "news_data", "news.csv")
+STOCK_PATH = os.path.join("data", "stock_data")
 
+# -----------------------------
+# Load News Data
+# -----------------------------
 def load_news_data():
-    """Loads the news dataset."""
-    try:
-        df_news = pd.read_csv(NEWS_DATA_PATH)
-        print(f"[INFO] Loaded news data: {df_news.shape} rows")
-        return df_news
-    except Exception as e:
-        print(f"[ERROR] Failed to load news data: {e}")
-        return None
-
-def load_stock_data(symbol):
     """
-    Loads stock data for a specific stock symbol.
-    Example: load_stock_data('AAPL')
+    Load news CSV and normalize date column to datetime with UTC.
+    Returns:
+        pd.DataFrame: news data with 'date', 'headline', 'stock', etc.
+    """
+    df = pd.read_csv(NEWS_PATH)
+    
+    # Ensure date column is datetime with UTC
+    df['date'] = pd.to_datetime(df['date'], utc=True)
+    
+    # Clean stock symbols if necessary
+    df['stock'] = df['stock'].str.upper()
+    
+    return df
+
+# -----------------------------
+# Load Stock Data
+# -----------------------------
+def load_stock_data(symbol: str):
+    """
+    Load stock CSV by symbol and normalize Date column.
+    Args:
+        symbol (str): Stock symbol (e.g., 'AAPL')
+    Returns:
+        pd.DataFrame: Stock data with 'Date', 'Close', etc.
     """
     filename = f"{symbol.lower()}.csv"
-    stock_file_path = os.path.join(STOCK_DATA_FOLDER, filename)
+    path = os.path.join(STOCK_PATH, filename)
+    
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"Stock file for {symbol} not found at {path}")
+    
+    df = pd.read_csv(path)
+    
+    # Normalize Date column
+    df['Date'] = pd.to_datetime(df['Date'], utc=True)
+    
+    return df
 
-    try:
-        df_stock = pd.read_csv(stock_file_path)
-        print(f"[INFO] Loaded stock data for {symbol}: {df_stock.shape} rows")
-        return df_stock
-    except Exception as e:
-        print(f"[ERROR] Could not load stock data for {symbol}: {e}")
-        return None
-
+# -----------------------------
+# List Available Stocks
+# -----------------------------
 def list_available_stocks():
-    """Returns a list of CSV files in the stock_data folder (symbols available)."""
-    try:
-        files = os.listdir(STOCK_DATA_FOLDER)
-        stock_symbols = [file.split(".")[0].upper() for file in files if file.endswith(".csv")]
-        return stock_symbols
-    except Exception as e:
-        print(f"[ERROR] Unable to list stock files: {e}")
-        return []
+    """
+    Returns list of available stock symbols from stock_data folder.
+    """
+    files = os.listdir(STOCK_PATH)
+    symbols = [f.split(".")[0].upper() for f in files if f.endswith(".csv")]
+    return symbols

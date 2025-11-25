@@ -1,48 +1,62 @@
+# plot.py
 import matplotlib.pyplot as plt
 import seaborn as sns
+import pandas as pd
 
-def plot_sentiment_vs_returns(merged_df, stock_symbol=None):
-    """
-    Plot daily sentiment and stock returns over time.
-    If stock_symbol is given, filter by that.
-    """
-    if stock_symbol:
-        merged_df = merged_df[merged_df['stock'] == stock_symbol]
+sns.set_style("whitegrid")
 
-    plt.figure(figsize=(10, 5))
-    plt.plot(merged_df['date'], merged_df['Daily_Sentiment'], label='Daily Sentiment')
-    plt.plot(merged_df['date'], merged_df['Daily_Return'], label='Daily Return')
-    plt.legend()
-    plt.title(f"Sentiment vs Daily Returns ({stock_symbol if stock_symbol else 'All Stocks'})")
+# -----------------------------
+# Plot Sentiment vs Returns Over Time
+# -----------------------------
+def plot_sentiment_vs_returns(df: pd.DataFrame, stock_symbol: str):
+    """
+    Plot average daily sentiment and stock returns over time.
+    Args:
+        df (pd.DataFrame): Merged DataFrame with 'date', 'avg_daily_sentiment', 'Daily_Return'
+        stock_symbol (str): Stock symbol for title
+    """
+    plt.figure(figsize=(12,5))
+    plt.plot(df['date'], df['avg_daily_sentiment'], label='Avg Daily Sentiment', marker='o')
+    plt.plot(df['date'], df['Daily_Return'], label='Daily Return', marker='x')
+    plt.title(f"{stock_symbol} - Sentiment vs Daily Returns Over Time")
     plt.xlabel("Date")
     plt.ylabel("Value")
-    plt.grid(True)
+    plt.legend()
+    plt.xticks(rotation=45)
+    plt.tight_layout()
     plt.show()
 
-
-def plot_scatter_correlation(merged_df, stock_symbol=None):
+# -----------------------------
+# Scatter Plot: Sentiment vs Returns
+# -----------------------------
+def plot_scatter_correlation(df: pd.DataFrame, stock_symbol: str):
     """
-    Create a scatter plot of sentiment vs returns with regression.
+    Scatter plot between avg daily sentiment and daily returns.
+    Args:
+        df (pd.DataFrame): Merged DataFrame
+        stock_symbol (str): Stock symbol for title
     """
-    if stock_symbol:
-        merged_df = merged_df[merged_df['stock'] == stock_symbol]
-
-    plt.figure(figsize=(6, 4))
-    sns.regplot(x='Daily_Sentiment', y='Daily_Return', data=merged_df, scatter_kws={'alpha': 0.5})
-    plt.title(f"Sentiment vs Stock Return ({stock_symbol if stock_symbol else 'All Stocks'})")
-    plt.xlabel("Daily Sentiment")
+    plt.figure(figsize=(8,6))
+    sns.scatterplot(x='avg_daily_sentiment', y='Daily_Return', data=df)
+    sns.regplot(x='avg_daily_sentiment', y='Daily_Return', data=df, scatter=False, color='red')
+    plt.title(f"{stock_symbol} - Sentiment vs Daily Returns")
+    plt.xlabel("Avg Daily Sentiment")
     plt.ylabel("Daily Return")
+    plt.tight_layout()
     plt.show()
 
-
-def plot_correlation_heatmap(merged_df):
+# -----------------------------
+# Correlation Heatmap
+# -----------------------------
+def plot_correlation_heatmap(df: pd.DataFrame):
     """
-    Correlation heatmap of sentiment and returns.
-    Useful if more variables included.
+    Plot correlation heatmap for all numeric columns in DataFrame.
+    Args:
+        df (pd.DataFrame): DataFrame containing numeric columns (avg_daily_sentiment, Daily_Return)
     """
-    correlation_matrix = merged_df[['Daily_Sentiment', 'Daily_Return']].corr()
-
-    plt.figure(figsize=(4, 3))
-    sns.heatmap(correlation_matrix, annot=True, cmap="coolwarm")
+    plt.figure(figsize=(6,5))
+    corr_matrix = df[['avg_daily_sentiment', 'Daily_Return']].corr()
+    sns.heatmap(corr_matrix, annot=True, cmap='viridis', fmt=".2f")
     plt.title("Correlation Heatmap")
+    plt.tight_layout()
     plt.show()
